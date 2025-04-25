@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vehicle Care Scheduler</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-router-dom@6.4.2/dist/umd/react-router-dom.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.18.9/babel.min.js"></script>
+  <script type="text/babel">
+    const { createRoot } = ReactDOM;
+    const { BrowserRouter, Routes, Route, Navigate } = ReactRouterDOM;
+
+    // Import components (assuming they are in separate files or defined above)
+    // For simplicity, assume components are defined or imported here
+    const LoginPage = () => <div>{/* LoginPage.jsx content */}</div>;
+    const RegistrationPage = () => <div>{/* RegistrationPage.jsx content */}</div>;
+    const Dashboard = () => <div>{/* Dashboard.jsx content */}</div>;
+    const VehicleDashboard = () => <div>{/* VehicleDashboard.jsx content */}</div>;
+    const VehicleDetailPage = () => <div>{/* VehicleDetailPage.jsx content */}</div>;
+    const MaintenanceCalendar = () => <div>{/* MaintenanceCalendar.jsx content */}</div>;
+    const MaintenanceTaskDetailPage = () => <div>{/* MaintenanceTaskDetailPage.jsx content */}</div>;
+    const ReportsDashboard = () => <div>{/* ReportsDashboard.jsx content */}</div>;
+    const SettingsPage = () => <div>{/* SettingsPage.jsx content */}</div>;
+    const DriverList = () => <div>{/* DriverList.jsx content */}</div>;
+    const DriverDetailPage = () => <div>{/* DriverDetailPage.jsx content */}</div>;
+
+    const ProtectedRoute = ({ children }) => {
+      const token = localStorage.getItem('token');
+      return token ? children : <Navigate to="/login" />;
+    };
+
+    const App = () => (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegistrationPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vehicles"
+            element={
+              <ProtectedRoute>
+                <VehicleDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vehicles/:vehicleId"
+            element={
+              <ProtectedRoute>
+                <VehicleDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/maintenance"
+            element={
+              <ProtectedRoute>
+                <MaintenanceCalendar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/maintenance/tasks/:taskId"
+            element={
+              <ProtectedRoute>
+                <MaintenanceTaskDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <ReportsDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/drivers"
+            element={
+              <ProtectedRoute>
+                <DriverList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/drivers/:driverId"
+            element={
+              <ProtectedRoute>
+                <DriverDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/" element={<Navigate to="/login" />} />
+        </Routes>
+      </BrowserRouter>
+    );
+
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

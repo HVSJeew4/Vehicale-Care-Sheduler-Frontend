@@ -1,37 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import { toast } from 'react-toastify';
+import { dummyTasks, dummyUsers, dummyTaskTemplates, dummyVehicles } from '../services/dummyData';
 
 const MaintenanceTaskDetailPage = () => {
+  // Get task ID from URL
   const { taskId } = useParams();
+  // State for task, vehicle, notes, status, assignee, users, and templates
   const [task, setTask] = useState(null);
+  const [vehicle, setVehicle] = useState(null);
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [users, setUsers] = useState([]);
+  const [taskTemplates, setTaskTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const fetchData = async () => {
+    // Simulate fetching task and related data with dummy data
+    // TODO: Replace with backend API calls
+    // Example: const taskRes = await axios.get(`http://localhost:5000/api/maintenance/tasks/${taskId}`, {
+    //   headers: { Authorization: `Bearer ${token}` },
+    // });
+    // Example: const vehicleRes = await axios.get(`http://localhost:5000/api/vehicles/${task.vehicleId}`, {
+    //   headers: { Authorization: `Bearer ${token}` },
+    // });
+    // Example: const usersRes = await axios.get('http://localhost:5000/api/users', {
+    //   headers: { Authorization: `Bearer ${token}` },
+    // });
+    // Example: const templatesRes = await axios.get(`http://localhost:5000/api/vehicles/${task.vehicleId}/task-templates`, {
+    //   headers: { Authorization: `Bearer ${token}` },
+    // });
+    const fetchData = () => {
       try {
-        const token = localStorage.getItem('token');
-        const [taskRes, usersRes] = await Promise.all([
-          axios.get(`http://localhost:5000/api/maintenance/tasks/${taskId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get('http://localhost:5000/api/users', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-        setTask(taskRes.data);
-        setNotes(taskRes.data.notes || '');
-        setStatus(taskRes.data.status);
-        setAssignedTo(taskRes.data.assignedTo?.id || '');
-        setUsers(usersRes.data.filter((u) => u.role === 'manager' || u.role === 'driver'));
+        const foundTask = dummyTasks.find((t) => t.taskId === taskId);
+        if (!foundTask) throw new Error('Task not found');
+        const foundVehicle = dummyVehicles.find((v) => v.vehicleId === foundTask.vehicleId);
+        setTask(foundTask);
+        setVehicle(foundVehicle);
+        setNotes(foundTask.notes || '');
+        setStatus(foundTask.status);
+        setAssignedTo(foundTask.assignedTo?.id || '');
+        setUsers(dummyUsers.filter((u) => u.role === 'manager' || u.role === 'driver'));
+        setTaskTemplates(dummyTaskTemplates[foundTask.vehicleId] || []);
       } catch (err) {
-        setError(err);
+        setError(err.message || 'Failed to fetch task.');
       } finally {
         setLoading(false);
       }
@@ -43,19 +57,23 @@ const MaintenanceTaskDetailPage = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setSuccess('');
-
+    // Simulate updating task
+    // TODO: Replace with backend API call
+    // Example: await axios.put(`http://localhost:5000/api/maintenance/tasks/${taskId}`, {
+    //   ...task, notes, status, assignedTo
+    // }, { headers: { Authorization: `Bearer ${token}` } });
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(
-        `http://localhost:5000/api/maintenance/tasks/${taskId}`,
-        { ...task, notes, status, assignedTo },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setSuccess('Task updated successfully.');
-      setTask({ ...task, notes, status, assignedTo });
+      const updatedTask = {
+        ...task,
+        notes,
+        status,
+        assignedTo: assignedTo ? { id: assignedTo, name: users.find((u) => u.userId === assignedTo)?.name } : null,
+      };
+      setTask(dummyTasks.map((t) => (t.taskId === taskId ? updatedTask : t)));
+      setTask(updatedTask);
+      toast.success('Task updated successfully.');
     } catch (err) {
-      setError(err);
+      toast.error(err.message || 'Failed to update task.');
     } finally {
       setLoading(false);
     }
@@ -65,7 +83,6 @@ const MaintenanceTaskDetailPage = () => {
     <div className="min-h-screen bg-gray-900 text-gray-100 font-inter p-6">
       <h1 className="text-4xl font-bold text-blue-300 mb-8">Maintenance Task Details</h1>
       {error && <p className="text-red-400 text-sm mb-4 animate-pulse">{error}</p>}
-      {success && <p className="text-green-400 text-sm mb-4 animate-pulse">{success}</p>}
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <svg className="animate-spin h-10 w-10 text-blue-500" viewBox="0 0 24 24">
@@ -79,12 +96,33 @@ const MaintenanceTaskDetailPage = () => {
             <h2 className="text-2xl font-semibold text-blue-200 mb-4">Task Information</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-blue-200">Task Type:</p>
-                <p className="text-gray-100">{task.taskName}</p>
+                <label className="block text-sm font-medium text-blue-200">Task Type:</label>
+                <select
+                  value={task.taskName}
+                  onChange={(e) => {
+                    const template = taskTemplates.find((t) => t.taskName === e.target.value);
+                    setTask({
+                      ...task,
+                      taskName: e.target.value,
+                      templateId: template?.templateId || '',
+                    });
+                  }}
+                  className="mt-2 w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {taskTemplates.map((template) => (
+                    <option key={template.templateId} value={template.taskName}>
+                      {template.taskName}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <p className="text-sm font-medium text-blue-200">Scheduled Date:</p>
                 <p className="text-gray-100">{new Date(task.scheduledDate).toLocaleDateString()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-blue-200">Vehicle Type:</p>
+                <p className="text-gray-100">{vehicle?.vehicleType || 'N/A'}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-blue-200">Status:</label>
@@ -107,7 +145,9 @@ const MaintenanceTaskDetailPage = () => {
                 >
                   <option value="">Unassigned</option>
                   {users.map((u) => (
-                    <option key={u.userId} value={u.userId}>{u.name}</option>
+                    <option key={u.userId} value={u.userId}>
+                      {u.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -127,7 +167,9 @@ const MaintenanceTaskDetailPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ${
+                loading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               {loading ? (
                 <span className="flex items-center">

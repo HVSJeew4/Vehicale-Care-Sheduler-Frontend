@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
 
 const VehicleDashboard = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -9,44 +10,118 @@ const VehicleDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newVehicle, setNewVehicle] = useState({ make: '', model: '', year: '', vin: '', status: 'active' });
+  const [newVehicle, setNewVehicle] = useState({
+    make: '',
+    model: '',
+    year: '',
+    vin: '',
+    status: 'active', // Frontend uses string for UI
+    vehicleType: '',
+  });
+  const navigate = useNavigate();
+
+  // Vehicle types matching backend VehicleTypeEnum
+  const vehicleTypes = ['Car', 'Bicycle', 'Truck', 'Motorcycle'];
+
+  // Map frontend status strings to backend CurrentStatusTypeEnum values
+  const statusToEnumMap = {
+    active: 1, // Active = 1
+    inactive: 2, // Inactive = 2
+    maintenance: 3, // Maintenance = 3
+  };
+
+  // Reverse map for displaying status in UI
+  const enumToStatusMap = {
+    1: 'active',
+    2: 'inactive',
+    3: 'maintenance',
+  };
+
+  // Map frontend vehicleType strings to backend VehicleTypeEnum values
+  const vehicleTypeToEnumMap = {
+    Car: 1, // Car = 1
+    Bicycle: 2, // Bicycle = 2
+    Truck: 3, // Truck = 3
+    Motorcycle: 4, // Motorcycle = 4
+  };
 
   useEffect(() => {
     const fetchVehicles = async () => {
+      setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/vehicles', {
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+
+        // Fetch vehicles from backend
+        const response = await axios.get('https://localhost:7016/api/Vehicle/GetAllVehicles', {
           headers: { Authorization: `Bearer ${token}` },
-          params: { search, status: filter },
+          params: {
+          search: search || '',  // if search is undefined, send empty string
+          status: filter || '',
+        },
         });
-        setVehicles(response.data);
+
+        let fetchedVehicles = response.data;
+
+        // Apply search and filter on the frontend (can be moved to backend if needed)
+        if (search) {
+          fetchedVehicles = fetchedVehicles.filter(
+            (v) =>
+              v.make.toLowerCase().includes(search.toLowerCase()) ||
+              v.model.toLowerCase().includes(search.toLowerCase())
+          );
+        }
+        if (filter) {
+          fetchedVehicles = fetchedVehicles.filter(
+            (v) => enumToStatusMap[v.currentStatusType].toLowerCase() === filter.toLowerCase()
+          );
+        }
+
+        setVehicles(fetchedVehicles);
       } catch (err) {
-        setError(err);
+        setError(err.response?.data?.message || 'Failed to fetch vehicles.');
+        toast.error(err.response?.data?.message || 'Failed to fetch vehicles.');
       } finally {
         setLoading(false);
       }
     };
     fetchVehicles();
-  }, [search, filter]);
+  }, [search, filter, navigate]);
 
   const handleAddVehicle = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/vehicles', newVehicle, {
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      // Map the status and vehicleType to backend enum values
+      const vehicleData = {
+        make: newVehicle.make,
+        model: newVehicle.model,
+        year: parseInt(newVehicle.year),
+        vin: newVehicle.vin,
+        vehicleType: vehicleTypeToEnumMap[newVehicle.vehicleType], // Convert to integer (e.g., "Car" -> 1)
+        currentStatusType: statusToEnumMap[newVehicle.status], // Map to enum value
+      };
+
+      const response = await axios.post('https://localhost:7016/api/Vehicle/AddVehicle', vehicleData, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      setVehicles([...vehicles, response.data]);
       setIsModalOpen(false);
-      setNewVehicle({ make: '', model: '', year: '', vin: '', status: 'active' });
-      // Refresh vehicles
-      const response = await axios.get('http://localhost:5000/api/vehicles', {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { search, status: filter },
-      });
-      setVehicles(response.data);
+      setNewVehicle({ make: '', model: '', year: '', vin: '', status: 'active', vehicleType: '' });
+      toast.success('Vehicle added successfully!');
     } catch (err) {
-      setError(err);
+      toast.error(err.response?.data?.message || 'Failed to add vehicle.');
     } finally {
       setLoading(false);
     }
@@ -56,12 +131,19 @@ const VehicleDashboard = () => {
     if (window.confirm('Are you sure you want to delete this vehicle?')) {
       try {
         const token = localStorage.getItem('token');
-        await axios.delete(`http://localhost:5000/api/vehicles/${vehicleId}`, {
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+
+        await axios.delete(`https://localhost:7016/api/Vehicle/DeleteVehicle/${vehicleId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setVehicles(vehicles.filter((v) => v.vehicleId !== vehicleId));
+
+        setVehicles(vehicles.filter((v) => v.id !== vehicleId));
+        toast.success('Vehicle deleted successfully!');
       } catch (err) {
-        setError(err);
+        toast.error(err.response?.data?.message || 'Failed to delete vehicle.');
       }
     }
   };
@@ -118,16 +200,27 @@ const VehicleDashboard = () => {
             </thead>
             <tbody className="divide-y divide-gray-700">
               {vehicles.map((vehicle) => (
-                <tr key={vehicle.vehicleId} className="hover:bg-gray-700 transition-colors duration-200">
+                <tr key={vehicle.id} className="hover:bg-gray-700 transition-colors duration-200">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">
-                    <Link to={`/vehicles/${vehicle.vehicleId}`} className="hover:text-blue-400">{vehicle.make}</Link>
+                    <Link to={`/vehicles/${vehicle.id}`} className="hover:text-blue-400">
+                      {vehicle.make}
+                    </Link>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">{vehicle.model}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">{vehicle.year}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-400">{vehicle.currentStatus}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-400">
+                    {enumToStatusMap[vehicle.currentStatusType]}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <Link to={`/vehicles/edit/${vehicle.vehicleId}`} className="text-blue-400 hover:text-blue-300 mr-4">Edit</Link>
-                    <button onClick={() => handleDelete(vehicle.vehicleId)} className="text-red-400 hover:text-red-300">Delete</button>
+                    <Link to={`/vehicles/edit/${vehicle.id}`} className="text-blue-400 hover:text-blue-300 mr-4">
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(vehicle.id)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -141,7 +234,9 @@ const VehicleDashboard = () => {
             <h2 className="text-2xl font-bold text-blue-300 mb-6">Add New Vehicle</h2>
             <form onSubmit={handleAddVehicle} className="space-y-4">
               <div>
-                <label htmlFor="make" className="block text-sm font-medium text-blue-200">Make</label>
+                <label htmlFor="make" className="block text-sm font-medium text-blue-200">
+                  Make
+                </label>
                 <input
                   type="text"
                   id="make"
@@ -152,7 +247,9 @@ const VehicleDashboard = () => {
                 />
               </div>
               <div>
-                <label htmlFor="model" className="block text-sm font-medium text-blue-200">Model</label>
+                <label htmlFor="model" className="block text-sm font-medium text-blue-200">
+                  Model
+                </label>
                 <input
                   type="text"
                   id="model"
@@ -163,7 +260,9 @@ const VehicleDashboard = () => {
                 />
               </div>
               <div>
-                <label htmlFor="year" className="block text-sm font-medium text-blue-200">Year</label>
+                <label htmlFor="year" className="block text-sm font-medium text-blue-200">
+                  Year
+                </label>
                 <input
                   type="number"
                   id="year"
@@ -174,7 +273,9 @@ const VehicleDashboard = () => {
                 />
               </div>
               <div>
-                <label htmlFor="vin" className="block text-sm font-medium text-blue-200">VIN</label>
+                <label htmlFor="vin" className="block text-sm font-medium text-blue-200">
+                  VIN
+                </label>
                 <input
                   type="text"
                   id="vin"
@@ -185,7 +286,9 @@ const VehicleDashboard = () => {
                 />
               </div>
               <div>
-                <label htmlFor="status" className="block text-sm font-medium text-blue-200">Status</label>
+                <label htmlFor="status" className="block text-sm font-medium text-blue-200">
+                  Status
+                </label>
                 <select
                   id="status"
                   value={newVehicle.status}
@@ -195,6 +298,25 @@ const VehicleDashboard = () => {
                   <option value="active">Active</option>
                   <option value="maintenance">Maintenance</option>
                   <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="vehicleType" className="block text-sm font-medium text-blue-200">
+                  Vehicle Type
+                </label>
+                <select
+                  id="vehicleType"
+                  value={newVehicle.vehicleType}
+                  onChange={(e) => setNewVehicle({ ...newVehicle, vehicleType: e.target.value })}
+                  className="mt-2 w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                >
+                  <option value="">Select Type</option>
+                  {vehicleTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="flex justify-end gap-4">
@@ -208,7 +330,9 @@ const VehicleDashboard = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 ${
+                    loading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
                   {loading ? 'Adding...' : 'Add Vehicle'}
                 </button>

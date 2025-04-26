@@ -1,15 +1,18 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
+import { jwtDecode } from 'jwt-decode';
 
 const RegistrationPage = () => {
   const [formData, setFormData] = useState({
-    name: '',
+    userName: '',
     email: '',
+    phoneNumber: '',
     password: '',
     role: '',
   });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -20,13 +23,25 @@ const RegistrationPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
-      await axios.post('http://localhost:5000/api/auth/register', formData);
-      navigate('/login');
+      const { data } = await axios.post('https://localhost:7016/api/Authentication/Register', formData);
+      const { token } = data;
+      localStorage.setItem('token', token);
+
+      // Decode JWT to get role
+      const decoded = jwtDecode(token);
+      const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']?.toLowerCase() || 'driver';
+
+      // Ensure token is persisted
+      if (localStorage.getItem('token')) {
+        toast.success('Registered successfully.');
+        navigate(`/dashboard/${role}`, { replace: true });
+      } else {
+        throw new Error('Token not persisted');
+      }
     } catch (err) {
-      setError(err);
+      toast.error(err.response?.data?.message || 'Registration failed.');
     } finally {
       setLoading(false);
     }
@@ -36,14 +51,13 @@ const RegistrationPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-100 font-inter">
       <div className="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all hover:scale-105 duration-300">
         <h2 className="text-3xl font-bold text-center text-blue-300 mb-6">Create Account</h2>
-        {error && <p className="text-red-400 text-sm mb-4 animate-pulse">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-blue-200">Name</label>
+            <label htmlFor="userName" className="block text-sm font-medium text-blue-200">Name</label>
             <input
               type="text"
-              id="name"
-              value={formData.name}
+              id="userName"
+              value={formData.userName}
               onChange={handleChange}
               className="mt-2 w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               placeholder="Enter your name"
@@ -60,6 +74,17 @@ const RegistrationPage = () => {
               className="mt-2 w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               placeholder="Enter your email"
               required
+            />
+          </div>
+          <div>
+            <label htmlFor="phoneNumber" className="block text-sm font-medium text-blue-200">Phone Number</label>
+            <input
+              type="tel"
+              id="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              className="mt-2 w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+              placeholder="Enter your phone number"
             />
           </div>
           <div>

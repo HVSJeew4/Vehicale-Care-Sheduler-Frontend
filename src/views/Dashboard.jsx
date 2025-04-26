@@ -1,816 +1,746 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const Dashboard = () => {
-  const [fleetStatus, setFleetStatus] = useState({ active: 0, maintenance: 0, inactive: 0 });
-  const [upcomingTasks, setUpcomingTasks] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  const { role } = useParams();
+  const navigate = useNavigate();
+  const [userRole, setUserRole] = useState(role || '');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Closed by default on mobile
-  const [expandedCard, setExpandedCard] = useState(null);
-  const [userRole, setUserRole] = useState('fleetOwner'); // Default role for demo
+  const [activityFilter, setActivityFilter] = useState('');
 
   useEffect(() => {
-    // In a real app, fetch the user role from the backend or auth context
-    /*
-    const fetchUserRole = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/auth/user', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUserRole(response.data.role); // e.g., 'fleetOwner', 'maintenanceManager', 'driver', 'admin'
-      } catch (err) {
-        setError('Failed to fetch user role.');
+    // Simulate fetching user data with dummy data
+    const dummyUser = {
+      id: '123',
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+      role: role?.toLowerCase() || 'owner', // Default to 'owner' if role is undefined
+    };
+
+    try {
+      const fetchedRole = dummyUser.role.toLowerCase();
+      if (fetchedRole !== role?.toLowerCase()) {
+        throw new Error('Role mismatch');
       }
-    };
-    fetchUserRole();
-    */
-
-    const fetchDummyData = async () => {
-      try {
-        const dummyFleetStatus = {
-          active: 12,
-          maintenance: 3,
-          inactive: 2,
-          activeVehicles: [
-            { id: 101, name: 'Toyota Camry' },
-            { id: 102, name: 'Honda Civic' },
-          ],
-          maintenanceVehicles: [
-            { id: 103, name: 'Ford F-150' },
-          ],
-          inactiveVehicles: [
-            { id: 104, name: 'Chevrolet Malibu' },
-          ],
-        };
-
-        const dummyUpcomingTasks = [
-          {
-            taskId: 1,
-            vehicleId: 101,
-            taskName: 'Oil Change',
-            scheduledDate: new Date(2025, 3, 26).toISOString(),
-          },
-          {
-            taskId: 2,
-            vehicleId: 102,
-            taskName: 'Tire Rotation',
-            scheduledDate: new Date(2025, 3, 28).toISOString(),
-          },
-          {
-            taskId: 3,
-            vehicleId: 103,
-            taskName: 'Brake Inspection',
-            scheduledDate: new Date(2025, 3, 30).toISOString(),
-          },
-        ];
-
-        const dummyNotifications = [
-          {
-            id: 1,
-            message: 'Oil Change due for Vehicle #101 on April 26',
-            date: new Date(2025, 3, 24, 9, 0).toISOString(),
-            isOverdue: false,
-          },
-          {
-            id: 2,
-            message: 'Tire Rotation overdue for Vehicle #104',
-            date: new Date(2025, 3, 23, 14, 30).toISOString(),
-            isOverdue: true,
-          },
-          {
-            id: 3,
-            message: 'Maintenance scheduled for Vehicle #102',
-            date: new Date(2025, 3, 24, 11, 15).toISOString(),
-            isOverdue: false,
-          },
-        ];
-
-        // Role-specific dummy data
-        const dummyOverdueTasks = [
-          {
-            taskId: 4,
-            vehicleId: 104,
-            taskName: 'Tire Rotation',
-            dueDate: new Date(2025, 3, 20).toISOString(),
-          },
-        ];
-
-        const dummyTaskCompletionStatus = {
-          completed: 5,
-          pending: 3,
-          overdue: 1,
-        };
-
-        const dummyAssignedVehicles = [
-          { vehicleId: 101, driverId: 201, driverName: 'John Doe', make: 'Toyota Camry' },
-          { vehicleId: 102, driverId: 202, driverName: 'Jane Smith', make: 'Honda Civic' },
-        ];
-
-        const dummyDriverAssignedVehicles = [
-          { vehicleId: 101, make: 'Toyota Camry', model: '2020' },
-        ];
-
-        const dummyDriverReportedIssues = [
-          { issueId: 1, vehicleId: 101, description: 'Brake noise', reportedDate: new Date(2025, 3, 22).toISOString() },
-        ];
-
-        const dummyMaintenanceCostSummary = {
-          totalCost: 2500,
-          recentServices: [
-            { vehicleId: 101, service: 'Oil Change', cost: 50, date: new Date(2025, 3, 15).toISOString() },
-            { vehicleId: 103, service: 'Brake Repair', cost: 200, date: new Date(2025, 3, 18).toISOString() },
-          ],
-        };
-
-        const dummyUserActivity = [
-          { userId: 301, action: 'Logged in', timestamp: new Date(2025, 3, 24, 8, 0).toISOString() },
-          { userId: 302, action: 'Updated settings', timestamp: new Date(2025, 3, 24, 9, 30).toISOString() },
-        ];
-
-        const dummySystemPerformance = {
-          uptime: '99.8%',
-          activeUsers: 10,
-        };
-
-        const dummySystemSettings = {
-          alertThresholdDays: 7,
-          oilChangeInterval: '3 months',
-        };
-
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        setFleetStatus(dummyFleetStatus);
-        setUpcomingTasks(dummyUpcomingTasks);
-        setNotifications(dummyNotifications);
-
-        // In a real app, fetch role-specific data from the backend
-        /*
-        if (userRole === 'fleetOwner') {
-          const fleetRes = await axios.get('http://localhost:5000/api/vehicles/status', { headers: { Authorization: `Bearer ${token}` } });
-          const tasksRes = await axios.get('http://localhost:5000/api/maintenance/upcoming', { headers: { Authorization: `Bearer ${token}` } });
-          const costRes = await axios.get('http://localhost:5000/api/reports/maintenance-cost', { headers: { Authorization: `Bearer ${token}` } });
-          setFleetStatus(fleetRes.data);
-          setUpcomingTasks(tasksRes.data);
-          setMaintenanceCostSummary(costRes.data);
-        } else if (userRole === 'maintenanceManager') {
-          const overdueRes = await axios.get('http://localhost:5000/api/maintenance/overdue', { headers: { Authorization: `Bearer ${token}` } });
-          const statusRes = await axios.get('http://localhost:5000/api/maintenance/status', { headers: { Authorization: `Bearer ${token}` } });
-          const vehiclesRes = await axios.get('http://localhost:5000/api/vehicles/assignments', { headers: { Authorization: `Bearer ${token}` } });
-          setOverdueTasks(overdueRes.data);
-          setTaskCompletionStatus(statusRes.data);
-          setAssignedVehicles(vehiclesRes.data);
-        } else if (userRole === 'driver') {
-          const vehiclesRes = await axios.get('http://localhost:5000/api/drivers/my-vehicles', { headers: { Authorization: `Bearer ${token}` } });
-          const tasksRes = await axios.get('http://localhost:5000/api/maintenance/upcoming/my-vehicles', { headers: { Authorization: `Bearer ${token}` } });
-          const issuesRes = await axios.get('http://localhost:5000/api/issues/my-reports', { headers: { Authorization: `Bearer ${token}` } });
-          setDriverAssignedVehicles(vehiclesRes.data);
-          setUpcomingTasks(tasksRes.data);
-          setDriverReportedIssues(issuesRes.data);
-        } else if (userRole === 'admin') {
-          const activityRes = await axios.get('http://localhost:5000/api/admin/user-activity', { headers: { Authorization: `Bearer ${token}` } });
-          const performanceRes = await axios.get('http://localhost:5000/api/admin/performance', { headers: { Authorization: `Bearer ${token}` } });
-          const settingsRes = await axios.get('http://localhost:5000/api/admin/settings', { headers: { Authorization: `Bearer ${token}` } });
-          setUserActivity(activityRes.data);
-          setSystemPerformance(performanceRes.data);
-          setSystemSettings(settingsRes.data);
-        }
-        */
-      } catch (err) {
-        setError('Failed to load dummy data.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDummyData();
-
-    // Update sidebar state based on window size
-    const handleResize = () => {
-      setIsSidebarOpen(window.innerWidth >= 1024);
-    };
-
-    window.addEventListener('resize', handleResize);
-    handleResize();
-
-    return () => window.removeEventListener('resize', handleResize);
-  }, [userRole]);
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  const toggleCard = (card) => {
-    setExpandedCard(expandedCard === card ? null : card);
-  };
-
-  // Render sections based on user role
-  const renderDashboardContent = () => {
-    if (loading) {
-      return (
-        <div className="flex justify-center items-center h-64">
-          <svg className="animate-spin h-8 w-8 sm:h-10 sm:w-10 text-blue-500" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-          </svg>
-        </div>
-      );
+      setUserRole(fetchedRole);
+    } catch (err) {
+      setError(err.message || 'Failed to authenticate.');
+      toast.error(err.message || 'Authentication failed.');
+      navigate('/login');
+    } finally {
+      setLoading(false);
     }
+  }, [role, navigate]);
 
+  const handleAddVehicle = () => {
+    navigate('/vehicles');
+  };
+
+  const handleAssignTask = () => {
+    navigate('/maintenance');
+  };
+
+  const handleReportIssue = () => {
+    navigate('/report-issue');
+  };
+
+  const handleManageSettings = () => {
+    navigate('/settings');
+  };
+
+  const handleViewReports = () => {
+    navigate('/reports');
+  };
+
+  const handleViewCalendar = () => {
+    navigate('/maintenance');
+  };
+
+  const handleViewTasks = () => {
+    navigate('/maintenance');
+  };
+
+  const handleManageUsers = () => {
+    navigate('/users');
+  };
+
+  const handleViewFleet = () => {
+    navigate('/vehicles');
+  };
+
+  const handleViewAlerts = () => {
+    navigate('/maintenance');
+  };
+
+  const handleRolePermissions = () => {
+    navigate('/roles');
+  };
+
+  const handleResetPasswords = () => {
+    navigate('/users/reset-passwords');
+  };
+
+  // Dummy data for fleet status (owner, manager)
+  const fleetStatus = {
+    totalVehicles: 10,
+    activeVehicles: 8,
+    underMaintenance: 2,
+  };
+
+  // Dummy data for upcoming maintenance alerts (owner, manager)
+  const upcomingAlerts = [
+    { id: '1', task: 'Oil Change', vehicle: 'Toyota Camry', dueDate: '2025-05-01', status: 'Pending' },
+    { id: '2', task: 'Tire Rotation', vehicle: 'Ford F-150', dueDate: '2025-05-03', status: 'Pending' },
+    { id: '3', task: 'Brake Inspection', vehicle: 'Honda Civic', dueDate: '2025-05-05', status: 'Urgent' },
+  ];
+
+  // Dummy data for admin: user accounts
+  const userSummary = {
+    totalUsers: 15,
+    admins: 2,
+    owners: 3,
+    managers: 5,
+    drivers: 5,
+  };
+
+  // Dummy data for admin: system settings
+  const systemSettings = {
+    alertThreshold: '7 days',
+    maintenanceInterval: '6 months',
+  };
+
+  // Dummy data for admin: system performance
+  const systemPerformance = {
+    uptime: 99.8, // As percentage for progress bar
+    avgResponseTime: 150, // In ms
+    activeSessions: 10,
+  };
+
+  // Dummy data for admin: system health
+  const systemHealth = {
+    criticalAlerts: 1,
+    status: 'Warning',
+  };
+
+  // Dummy data for admin: user activities
+  const userActivities = [
+    { id: '1', user: 'Jane Smith', action: 'Logged in', timestamp: '2025-04-25 09:00', type: 'login' },
+    { id: '2', user: 'Bob Johnson', action: 'Updated vehicle', timestamp: '2025-04-25 08:45', type: 'update' },
+    { id: '3', user: 'Alice Brown', action: 'Assigned task', timestamp: '2025-04-25 08:30', type: 'task' },
+  ];
+
+  // Filter activities based on search input
+  const filteredActivities = userActivities.filter(
+    (activity) =>
+      activity.user.toLowerCase().includes(activityFilter.toLowerCase()) ||
+      activity.action.toLowerCase().includes(activityFilter.toLowerCase())
+  );
+
+  const renderDashboardContent = () => {
     switch (userRole) {
-      case 'fleetOwner':
+      case 'owner':
+      case 'manager':
         return (
-          <div className="space-y-6 lg:space-y-8">
-            {/* Fleet Status (US1.4) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {[
-                {
-                  title: 'Active Vehicles',
-                  count: fleetStatus.active,
-                  icon: 'fa-car',
-                  gradient: 'from-green-500 to-green-700',
-                  vehicles: fleetStatus.activeVehicles,
-                  key: 'active',
-                },
-                {
-                  title: 'In Maintenance',
-                  count: fleetStatus.maintenance,
-                  icon: 'fa-tools',
-                  gradient: 'from-yellow-500 to-yellow-700',
-                  vehicles: fleetStatus.maintenanceVehicles,
-                  key: 'maintenance',
-                },
-                {
-                  title: 'Inactive',
-                  count: fleetStatus.inactive,
-                  icon: 'fa-parking',
-                  gradient: 'from-red-500 to-red-700',
-                  vehicles: fleetStatus.inactiveVehicles,
-                  key: 'inactive',
-                },
-              ].map((card) => (
-                <div
-                  key={card.key}
-                  className={`bg-gradient-to-r ${card.gradient} p-4 sm:p-6 rounded-2xl shadow-xl transform transition-all duration-300 cursor-pointer`}
-                  onClick={() => toggleCard(card.key)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">{card.title}</h2>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">{card.count}</p>
-                    </div>
-                    <i className={`fas ${card.icon} text-2xl sm:text-3xl text-white opacity-75`}></i>
-                  </div>
-                  {expandedCard === card.key && (
-                    <div className="mt-3 sm:mt-4 text-white">
-                      <h3 className="text-xs sm:text-sm font-medium">Vehicles:</h3>
-                      <ul className="mt-2 space-y-1">
-                        {card.vehicles && card.vehicles.length > 0 ? (
-                          card.vehicles.map((vehicle) => (
-                            <li key={vehicle.id} className="text-xs sm:text-sm">
-                              #{vehicle.id}: {vehicle.name}
-                            </li>
-                          ))
-                        ) : (
-                          <li className="text-xs sm:text-sm opacity-75">No vehicles in this category.</li>
-                        )}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+          <div className="space-y-8">
+            <h2 className="text-2xl font-semibold text-blue-200">
+              {userRole === 'owner' ? 'Fleet Owner Dashboard' : 'Maintenance Manager Dashboard'}
+            </h2>
+            <p className="text-gray-300">
+              {userRole === 'owner'
+                ? 'Manage your fleet, view reports, and assign tasks.'
+                : 'Schedule and assign maintenance tasks.'}
+            </p>
 
-            {/* Upcoming Maintenance (US1.3) */}
-            <div className="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-blue-200 mb-4">
-                Upcoming Maintenance
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700">
-                  <thead className="bg-gray-700">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Vehicle ID
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Task
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Scheduled Date
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {upcomingTasks.map((task) => (
-                      <tr
-                        key={task.taskId}
-                        className="hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                      >
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          <Link to={`/maintenance/tasks/${task.taskId}`} className="hover:text-blue-400">
-                            #{task.vehicleId}
-                          </Link>
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {task.taskName}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {new Date(task.scheduledDate).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {/* Overview of Fleet Status */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-medium text-blue-200">Overview of Fleet Status</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div
+                  onClick={handleViewFleet}
+                  className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 4h4M4 8l4-4m12 4v4m0-4h-4m4 0l-4 4M4 16v4m0-4h4m-4 0l4 4m12-4v-4m0 4h-4m4 0l-4-4" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Total Vehicles</h4>
+                      <p className="text-2xl font-bold text-gray-100 animate-count">{fleetStatus.totalVehicles}</p>
+                      <p className="text-sm text-gray-400">View all vehicles</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to view all vehicles
+                  </div>
+                </div>
+                <div
+                  onClick={handleViewFleet}
+                  className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Active Vehicles</h4>
+                      <p className="text-2xl font-bold text-gray-100 animate-count">{fleetStatus.activeVehicles}</p>
+                      <p className="text-sm text-gray-400">Currently operational</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to view active vehicles
+                  </div>
+                </div>
+                <div
+                  onClick={handleViewFleet}
+                  className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37 1 .608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Under Maintenance</h4>
+                      <p className="text-2xl font-bold text-gray-100 animate-count">{fleetStatus.underMaintenance}</p>
+                      <p className="text-sm text-gray-400">In maintenance</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to view vehicles in maintenance
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Maintenance Cost Summary (US1.5) */}
-            <div className="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-blue-200 mb-4">
-                Maintenance Cost Summary
-              </h2>
-              <p className="text-gray-100 mb-4">
-                Total Cost: <span className="text-blue-400">$2500</span>
-              </p>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700">
-                  <thead className="bg-gray-700">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Vehicle ID
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Service
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Cost
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Date
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {[
-                      { vehicleId: 101, service: 'Oil Change', cost: 50, date: new Date(2025, 3, 15).toISOString() },
-                      { vehicleId: 103, service: 'Brake Repair', cost: 200, date: new Date(2025, 3, 18).toISOString() },
-                    ].map((service, index) => (
-                      <tr key={index} className="hover:bg-gray-700 transition-colors duration-200">
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          #{service.vehicleId}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {service.service}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          ${service.cost}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {new Date(service.date).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {/* Upcoming Maintenance Alerts */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-medium text-blue-200">Upcoming Maintenance Alerts</h3>
+              <div className="space-y-4">
+                {upcomingAlerts.map((alert) => (
+                  <div
+                    key={alert.id}
+                    onClick={handleViewAlerts}
+                    className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                          <h4 className="text-lg font-medium text-blue-200">{alert.task}</h4>
+                          <p className="text-sm text-gray-400">Vehicle: {alert.vehicle}</p>
+                          <p className="text-sm text-gray-400">Due: {alert.dueDate}</p>
+                        </div>
+                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          alert.status === 'Urgent' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
+                        }`}
+                      >
+                        {alert.status}
+                      </span>
+                    </div>
+                    <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                      Click to view maintenance details
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-medium text-blue-200">Actions</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {userRole === 'owner' ? (
+                  <>
+                    <div
+                      onClick={handleAddVehicle}
+                      className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <div>
+                          <h4 className="text-lg font-medium text-blue-200">Add Vehicle</h4>
+                          <p className="text-sm text-gray-400">Register a new vehicle to your fleet.</p>
+                        </div>
+                      </div>
+                      <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                        Click to add a new vehicle
+                      </div>
+                    </div>
+                    <div
+                      onClick={handleViewReports}
+                      className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-6h6v6m-6 0h6m-3-9V3" />
+                        </svg>
+                        <div>
+                          <h4 className="text-lg font-medium text-blue-200">View Reports</h4>
+                          <p className="text-sm text-gray-400">Analyze fleet performance and maintenance.</p>
+                        </div>
+                      </div>
+                      <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                        Click to view reports
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div
+                      onClick={handleAssignTask}
+                      className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <div>
+                          <h4 className="text-lg font-medium text-blue-200">Assign Task</h4>
+                          <p className="text-sm text-gray-400">Schedule maintenance for vehicles.</p>
+                        </div>
+                      </div>
+                      <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                        Click to assign a task
+                      </div>
+                    </div>
+                    <div
+                      onClick={handleViewCalendar}
+                      className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <div>
+                          <h4 className="text-lg font-medium text-blue-200">View Calendar</h4>
+                          <p className="text-sm text-gray-400">See upcoming maintenance schedules.</p>
+                        </div>
+                      </div>
+                      <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                        Click to view calendar
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
         );
-
-      case 'maintenanceManager':
-        return (
-          <div className="space-y-6 lg:space-y-8">
-            {/* Overdue Tasks (US2.3) */}
-            <div className="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-blue-200 mb-4">
-                Overdue Tasks
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700">
-                  <thead className="bg-gray-700">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Vehicle ID
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Task
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Due Date
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {[
-                      {
-                        taskId: 4,
-                        vehicleId: 104,
-                        taskName: 'Tire Rotation',
-                        dueDate: new Date(2025, 3, 20).toISOString(),
-                      },
-                    ].map((task) => (
-                      <tr
-                        key={task.taskId}
-                        className="hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                      >
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          <Link to={`/maintenance/tasks/${task.taskId}`} className="hover:text-blue-400">
-                            #{task.vehicleId}
-                          </Link>
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {task.taskName}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {new Date(task.dueDate).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Task Completion Status (US2.2) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-              {[
-                {
-                  title: 'Completed Tasks',
-                  count: 5,
-                  icon: 'fa-check-circle',
-                  gradient: 'from-green-500 to-green-700',
-                  key: 'completed',
-                },
-                {
-                  title: 'Pending Tasks',
-                  count: 3,
-                  icon: 'fa-hourglass-half',
-                  gradient: 'from-blue-500 to-blue-700',
-                  key: 'pending',
-                },
-                {
-                  title: 'Overdue Tasks',
-                  count: 1,
-                  icon: 'fa-exclamation-circle',
-                  gradient: 'from-red-500 to-red-700',
-                  key: 'overdue',
-                },
-              ].map((card) => (
-                <div
-                  key={card.key}
-                  className={`bg-gradient-to-r ${card.gradient} p-4 sm:p-6 rounded-2xl shadow-xl transform transition-all duration-300`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">{card.title}</h2>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">{card.count}</p>
-                    </div>
-                    <i className={`fas ${card.icon} text-2xl sm:text-3xl text-white opacity-75`}></i>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Assigned Vehicles (US2.5) */}
-            <div className="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-blue-200 mb-4">
-                Assigned Vehicles
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700">
-                  <thead className="bg-gray-700">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Vehicle ID
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Vehicle Make
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Driver
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {[
-                      { vehicleId: 101, driverId: 201, driverName: 'John Doe', make: 'Toyota Camry' },
-                      { vehicleId: 102, driverId: 202, driverName: 'Jane Smith', make: 'Honda Civic' },
-                    ].map((vehicle) => (
-                      <tr key={vehicle.vehicleId} className="hover:bg-gray-700 transition-colors duration-200">
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          #{vehicle.vehicleId}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {vehicle.make}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {vehicle.driverName}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        );
-
       case 'driver':
         return (
-          <div className="space-y-6 lg:space-y-8">
-            {/* Assigned Vehicles (US3.1) */}
-            <div className="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-blue-200 mb-4">
-                My Assigned Vehicles
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700">
-                  <thead className="bg-gray-700">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Vehicle ID
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Make
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Model
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {[
-                      { vehicleId: 101, make: 'Toyota Camry', model: '2020' },
-                    ].map((vehicle) => (
-                      <tr key={vehicle.vehicleId} className="hover:bg-gray-700 transition-colors duration-200">
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          #{vehicle.vehicleId}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {vehicle.make}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {vehicle.model}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Upcoming Maintenance for Assigned Vehicles (US3.3) */}
-            <div className="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-blue-200 mb-4">
-                Upcoming Maintenance
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700">
-                  <thead className="bg-gray-700">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Vehicle ID
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Task
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Scheduled Date
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {upcomingTasks
-                      .filter((task) => task.vehicleId === 101) // Filter for driver's assigned vehicle
-                      .map((task) => (
-                        <tr
-                          key={task.taskId}
-                          className="hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                        >
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                            <Link to={`/maintenance/tasks/${task.taskId}`} className="hover:text-blue-400">
-                              #{task.vehicleId}
-                            </Link>
-                          </td>
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                            {task.taskName}
-                          </td>
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                            {new Date(task.scheduledDate).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Reported Issues (US3.2) */}
-            <div className="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-blue-200 mb-4">
-                Reported Issues
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700">
-                  <thead className="bg-gray-700">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Vehicle ID
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Issue
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Reported Date
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {[
-                      { issueId: 1, vehicleId: 101, description: 'Brake noise', reportedDate: new Date(2025, 3, 22).toISOString() },
-                    ].map((issue) => (
-                      <tr key={issue.issueId} className="hover:bg-gray-700 transition-colors duration-200">
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          #{issue.vehicleId}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {issue.description}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {new Date(issue.reportedDate).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'admin':
-        return (
-          <div className="space-y-6 lg:space-y-8">
-            {/* User Activity (US4.3) */}
-            <div className="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-blue-200 mb-4">
-                User Activity
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700">
-                  <thead className="bg-gray-700">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        User ID
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Action
-                      </th>
-                      <th className="px-4 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-blue-200 uppercase tracking-wider">
-                        Timestamp
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {[
-                      { userId: 301, action: 'Logged in', timestamp: new Date(2025, 3, 24, 8, 0).toISOString() },
-                      { userId: 302, action: 'Updated settings', timestamp: new Date(2025, 3, 24, 9, 30).toISOString() },
-                    ].map((activity) => (
-                      <tr key={activity.userId} className="hover:bg-gray-700 transition-colors duration-200">
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          #{activity.userId}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {activity.action}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-100">
-                          {new Date(activity.timestamp).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* System Performance Metrics (US4.3) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              {[
-                {
-                  title: 'System Uptime',
-                  value: '99.8%',
-                  icon: 'fa-server',
-                  gradient: 'from-blue-500 to-blue-700',
-                  key: 'uptime',
-                },
-                {
-                  title: 'Active Users',
-                  value: 10,
-                  icon: 'fa-users',
-                  gradient: 'from-green-500 to-green-700',
-                  key: 'activeUsers',
-                },
-              ].map((metric) => (
-                <div
-                  key={metric.key}
-                  className={`bg-gradient-to-r ${metric.gradient} p-4 sm:p-6 rounded-2xl shadow-xl transform transition-all duration-300`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">{metric.title}</h2>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">{metric.value}</p>
-                    </div>
-                    <i className={`fas ${metric.icon} text-2xl sm:text-3xl text-white opacity-75`}></i>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold text-blue-200">Driver Dashboard</h2>
+            <p className="text-gray-300">View assigned tasks and report issues.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div
+                onClick={handleReportIssue}
+                className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+              >
+                <div className="flex items-center space-x-4">
+                  <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h3 className="text-lg font-medium text-blue-200">Report Issue</h3>
+                    <p className="text-sm text-gray-400">Submit vehicle or task issues.</p>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* System Settings Summary (US4.2) */}
-            <div className="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-blue-200 mb-4">
-                System Settings Summary
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-100">
-                    Alert Threshold: <span className="text-blue-400">7 days</span>
-                  </p>
+                <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                  Click to report an issue
                 </div>
-                <div>
-                  <p className="text-gray-100">
-                    Oil Change Interval: <span className="text-blue-400">3 months</span>
-                  </p>
+              </div>
+              <div
+                onClick={handleViewTasks}
+                className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+              >
+                <div className="flex items-center space-x-4">
+                  <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  <div>
+                    <h3 className="text-lg font-medium text-blue-200">View Tasks</h3>
+                    <p className="text-sm text-gray-400">Check your assigned maintenance tasks.</p>
+                  </div>
+                </div>
+                <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                  Click to view tasks
                 </div>
               </div>
             </div>
           </div>
         );
+      case 'admin':
+        return (
+          <div className="space-y-8">
+            <h2 className="text-2xl font-semibold text-blue-200">Administrator Dashboard</h2>
+            <p className="text-gray-300">Manage users, configure settings, and monitor system performance.</p>
 
+            {/* System Health */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-medium text-blue-200">System Health</h3>
+              <div
+                className="bg-gradient-to-r from-blue-900 to-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+              >
+                <div className="flex items-center space-x-4">
+                  <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h4 className="text-lg font-medium text-blue-200">System Status</h4>
+                    <p className="text-2xl font-bold text-gray-100">{systemHealth.status}</p>
+                    <p className="text-sm text-gray-400">Critical Alerts: {systemHealth.criticalAlerts}</p>
+                  </div>
+                </div>
+                <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                  Click to view system health details
+                </div>
+              </div>
+            </div>
+
+            {/* Manage User Accounts and Roles */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-medium text-blue-200">Manage User Accounts and Roles</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div
+                  onClick={handleManageUsers}
+                  className="bg-gradient-to-r from-blue-900 to-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Total Users</h4>
+                      <p className="text-2xl font-bold text-gray-100 animate-count">{userSummary.totalUsers}</p>
+                      <p className="text-sm text-gray-400">View all users</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to view all users
+                  </div>
+                </div>
+                <div
+                  onClick={handleManageUsers}
+                  className="bg-gradient-to-r from-blue-900 to-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Role Distribution</h4>
+                      <p className="text-sm text-gray-100">
+                        Admins: {userSummary.admins}, Owners: {userSummary.owners}
+                      </p>
+                      <p className="text-sm text-gray-400">Manage roles</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to manage roles
+                  </div>
+                </div>
+                <div
+                  onClick={handleRolePermissions}
+                  className="bg-gradient-to-r from-blue-900 to-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Role Permissions</h4>
+                      <p className="text-sm text-gray-400">Edit role permissions</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to edit role permissions
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Configure System Settings */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-medium text-blue-200">Configure System Settings</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div
+                  onClick={handleManageSettings}
+                  className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Alert Threshold</h4>
+                      <p className="text-2xl font-bold text-gray-100">{systemSettings.alertThreshold}</p>
+                      <p className="text-sm text-gray-400">Set alert timing</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to configure alert threshold
+                  </div>
+                </div>
+                <div
+                  onClick={handleManageSettings}
+                  className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24  Ön: 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Maintenance Interval</h4>
+                      <p className="text-2xl font-bold text-gray-100">{systemSettings.maintenanceInterval}</p>
+                      <p className="text-sm text-gray-400">Set maintenance frequency</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to configure maintenance interval
+                  </div>
+                </div>
+                <div
+                  onClick={handleManageSettings}
+                  className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37 1 .608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">System Settings</h4>
+                      <p className="text-sm text-gray-400">Configure all settings</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to configure all settings
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Monitor System Performance */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-medium text-blue-200">System Performance</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div
+                  className="bg-gradient-to-r from-blue-900 to-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">System Uptime</h4>
+                      <p className="text-2xl font-bold text-gray-100 animate-count">{systemPerformance.uptime}%</p>
+                      <div className="w-full bg-gray-700 rounded-full h-2.5 mt-2">
+                        <div
+                          className="bg-blue-600 h-2.5 rounded-full"
+                          style={{ width: `${systemPerformance.uptime}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-sm text-gray-400 mt-1">System availability</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    System uptime status
+                  </div>
+                </div>
+                <div
+                  className="bg-gradient-to-r from-blue-900 to-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Response Time</h4>
+                      <p className="text-2xl font-bold text-gray-100 animate-count">{systemPerformance.avgResponseTime}ms</p>
+                      <div className="w-full bg-gray-700 rounded-full h-2.5 mt-2">
+                        <div
+                          className="bg-blue-600 h-2.5 rounded-full"
+                          style={{ width: `${Math.min(100, 200 / systemPerformance.avgResponseTime * 100)}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-sm text-gray-400 mt-1">Average API response</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    API response time
+                  </div>
+                </div>
+                <div
+                  className="bg-gradient-to-r from-blue-900 to-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Active Sessions</h4>
+                      <p className="text-2xl font-bold text-gray-100 animate-count">{systemPerformance.activeSessions}</p>
+                      <p className="text-sm text-gray-400">Current users online</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Active user sessions
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent User Activities */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-medium text-blue-200">Recent User Activities</h3>
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Search activities..."
+                  value={activityFilter}
+                  onChange={(e) => setActivityFilter(e.target.value)}
+                  className="w-full p-2 bg-gray-800 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="space-y-4">
+                {filteredActivities.length > 0 ? (
+                  filteredActivities.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                          <div>
+                            <h4 className="text-lg font-medium text-blue-200">{activity.user}</h4>
+                            <p className="text-sm text-gray-400">Action: {activity.action}</p>
+                            <p className="text-sm text-gray-400">Time: {activity.timestamp}</p>
+                          </div>
+                        </div>
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            activity.type === 'login'
+                              ? 'bg-green-600 text-white'
+                              : activity.type === 'update'
+                              ? 'bg-yellow-600 text-white'
+                              : 'bg-blue-600 text-white'
+                          }`}
+                        >
+                          {activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
+                        </span>
+                      </div>
+                      <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                        Click to view activity details
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-400">No activities match your search.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-medium text-blue-200">Quick Actions</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div
+                  onClick={handleManageUsers}
+                  className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Add User</h4>
+                      <p className="text-sm text-gray-400">Create a new user account</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to add a new user
+                  </div>
+                </div>
+                <div
+                  onClick={handleResetPasswords}
+                  className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-12 0 6 6 0 0112 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Reset Passwords</h4>
+                      <p className="text-sm text-gray-400">Initiate password resets</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to reset user passwords
+                  </div>
+                </div>
+                <div
+                  className="bg-gray-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300 cursor-pointer relative group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-200">Export Logs</h4>
+                      <p className="text-sm text-gray-400">Download system logs</p>
+                    </div>
+                  </div>
+                  <div className="absolute invisible group-hover:visible bg-gray-700 text-white text-xs rounded py-1 px-2 bottom-full mb-2">
+                    Click to export system logs
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       default:
-        return <p className="text-gray-100 text-center">Role not recognized.</p>;
+        return <p className="text-red-400">Invalid role. Please log in again.</p>;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 font-inter flex flex-col lg:flex-row">
-      {/* Sidebar */}
-      <div
-        className={`fixed lg:static inset-y-0 left-0 z-50 bg-gray-800 text-gray-100 transition-all duration-300 ${
-          isSidebarOpen ? 'w-64' : 'w-0 lg:w-16'
-        } lg:min-h-screen flex flex-col overflow-hidden`}
-      >
-        <div className="p-4 flex items-center justify-between">
-          {isSidebarOpen && <h2 className="text-xl font-bold text-blue-300">Menu</h2>}
-          <button onClick={toggleSidebar} className="text-blue-400 hover:text-blue-300 lg:hidden">
-            <i className={`fas ${isSidebarOpen ? 'fa-times' : 'fa-bars'} text-xl`}></i>
-          </button>
+    <div className="min-h-screen bg-gray-900 text-gray-100 font-inter p-6">
+      <style>
+        {`
+          @keyframes countUp {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          .animate-count {
+            animation: countUp 0.5s ease-out;
+          }
+        `}
+      </style>
+      <h1 className="text-4xl font-bold text-blue-300 mb-8">Dashboard</h1>
+      {error && <p className="text-red-400 text-sm mb-4 animate-pulse">{error}</p>}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <svg className="animate-spin h-10 w-10 text-blue-500" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+          </svg>
         </div>
-        <nav className="flex-1">
-          <ul className="space-y-2 p-4">
-            {[
-              { to: '/vehicles', icon: 'fa-car', label: 'Manage Vehicles' },
-              { to: '/maintenance', icon: 'fa-calendar', label: 'Maintenance Schedules' },
-              { to: '/reports', icon: 'fa-chart-bar', label: 'Reports' },
-              { to: '/drivers', icon: 'fa-users', label: 'Driver Management' },
-            ].map((item) => (
-              <li key={item.to}>
-                <Link
-                  to={item.to}
-                  onClick={() => window.innerWidth < 1024 && setIsSidebarOpen(false)} // Close sidebar on mobile after click
-                  className="flex items-center p-3 rounded-lg hover:bg-blue-600 hover:text-white transition-colors duration-200 text-sm lg:text-base"
-                >
-                  <i className={`fas ${item.icon} ${isSidebarOpen ? 'mr-3' : 'mx-auto'} text-lg`}></i>
-                  {isSidebarOpen && <span>{item.label}</span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 p-4 sm:p-6 lg:p-8">
-        {/* Hamburger Menu for Mobile */}
-        <div className="lg:hidden flex justify-between items-center mb-4">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-300">Dashboard</h1>
-          <button onClick={toggleSidebar} className="text-blue-400 hover:text-blue-300">
-            <i className="fas fa-bars text-2xl"></i>
-          </button>
-        </div>
-
-        {/* Hide title on mobile since it's in the hamburger menu bar */}
-        <h1 className="hidden lg:block text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-300 mb-6 lg:mb-8">
-          Dashboard
-        </h1>
-
-        {error && <p className="text-red-400 text-sm mb-4 animate-pulse">{error}</p>}
-        {renderDashboardContent()}
-      </div>
+      ) : (
+        renderDashboardContent()
+      )}
     </div>
   );
 };

@@ -1,27 +1,39 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { jwtDecode } from 'jwt-decode';
 
-const Login = () => {
+const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-
     try {
-      const response = await axios.post('https://localhost:7016/api/Authentication/Login', {
+      const { data } = await axios.post('https://localhost:7016/api/Authentication/Login', {
         email,
         password,
       });
-      const { token } = response.data;
+      const { token } = data;
       localStorage.setItem('token', token);
-      window.location.href = '/dashboard';
+
+      // Decode JWT to get role
+      const decoded = jwtDecode(token);
+      const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']?.toLowerCase() || 'driver';
+
+      // Ensure token is persisted before navigation
+      if (localStorage.getItem('token')) {
+        toast.success('Logged in successfully.');
+        navigate(`/dashboard/${role}`, { replace: true });
+      } else {
+        throw new Error('Token not persisted');
+      }
     } catch (err) {
-      setError(err,'Login failed. Please check your credentials.');
+      toast.error(err.response?.data?.message || 'Login failed.');
     } finally {
       setLoading(false);
     }
@@ -30,9 +42,8 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-100 font-inter">
       <div className="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all hover:scale-105 duration-300">
-        <h2 className="text-3xl font-bold text-center text-blue-300 mb-6">Login</h2>
-        {error && <p className="text-red-400 text-sm mb-4 animate-pulse">{error}</p>}
-        <form onSubmit={handleLogin} className="space-y-6">
+        <h1 className="text-3xl font-bold text-center text-blue-300 mb-6">Login</h1>
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-blue-200">Email</label>
             <input
@@ -74,13 +85,10 @@ const Login = () => {
               'Login'
             )}
           </button>
-          <div className="text-center">
-            <a href="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200">Forgot Password?</a>
-          </div>
         </form>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default LoginPage;

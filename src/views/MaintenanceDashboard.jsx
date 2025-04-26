@@ -11,7 +11,7 @@ const MaintenanceDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false); // State for schedule modal
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false); // New state for schedule modal
   const [newTask, setNewTask] = useState({
     vehicleId: '',
     userId: '',

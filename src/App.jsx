@@ -24,6 +24,8 @@ import RolePermissions from './views/RolePermissions.jsx';
 import ResetPasswords from './views/ResetPasswords.jsx';
 import ReportIssue from './views/ReportIssue.jsx';
 import MainLayout from './views/MainLayout.jsx';
+import MaintenanceDashboard from './views/MaintenanceDashboard';
+
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -39,6 +41,9 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegistrationPage />} />
+          <Route path="/vehicles" element={<VehicleDashboard />} />
+          <Route path="/maintenance" element={<MaintenanceDashboard />} />
+          <Route path="/maintenance/tasks/:taskId" element={<MaintenanceTaskDetailPage />} />
           <Route
             path="/dashboard/:role"
             element={
